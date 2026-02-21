@@ -1,4 +1,4 @@
-# Cedar Med Tech — Interactive One-Page Site (Alternative 3)
+# Cedar Med Tech — Interactive One-Page Site
 
 - Starts with **one ring**
 - **Swipe left/right** to decrease/increase the number of rings visible
