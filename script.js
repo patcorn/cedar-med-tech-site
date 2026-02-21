@@ -285,7 +285,7 @@
     state.visibleStart = state.visibleTarget;
 
     // Pause hint after first touch
-    showHint('swipe left ↔ right to reveal rings — tap to introduce subtle distortion', 2200);
+    showHint('swipe left ↔ right to size — tap to shape', 2200);
   }
 
   function onPointerMove(e) {
