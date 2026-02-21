@@ -45,7 +45,7 @@
   const state = {
     cx: 0, cy: 0, maxVisibleRadius: 0,
     baseRadius: 56,
-    ringGap:40.6,
+    ringGap: 12.6,
 
     // We precompute a full set of ring radii, but only draw N of them.
     rings: [], // [{r,born}]
@@ -257,7 +257,28 @@
     state.visibleTarget = Math.max(0, Math.min(state.maxRings - 1, state.visibleStart + delta));
   }
 
+  function addTapAt(clientX, clientY) {
+    // Convert tap position to angle around center.
+    const x = clientX - state.cx;
+    const y = clientY - state.cy;
+    const ang = Math.atan2(y, x);
+
+    // amplitude based on distance from center: closer = smaller, mid = bigger
+    const d = Math.sqrt(x*x + y*y);
+    const dNorm = clamp01(d / (Math.min(window.innerWidth, window.innerHeight) * 0.55));
+    const amp = lerp(0.55, 1.25, dNorm);
+    const sigma = lerp(0.22, 0.12, dNorm); // radians (~12° to 22°)
+
+    state.taps.push({ ang, amp, sigma, created: performance.now() });
+    if (state.taps.length > 18) state.taps.shift();
+  }
+
   function onPointerDown(e) {
+    // Tap detection (works on mobile where click may not fire)
+    state._downX = e.clientX;
+    state._downY = e.clientY;
+    state._downAt = performance.now();
+    state._moved = false;
     canvas.setPointerCapture(e.pointerId);
     state.dragging = true;
     state.dragStartX = e.clientX;
@@ -268,6 +289,11 @@
   }
 
   function onPointerMove(e) {
+    if (state._downAt) {
+      const dx0 = e.clientX - state._downX;
+      const dy0 = e.clientY - state._downY;
+      if (!state._moved && (dx0*dx0 + dy0*dy0) > 12*12) state._moved = true;
+    }
     if (!state.dragging) return;
     setVisibleFromDrag(e.clientX - state.dragStartX);
   }
@@ -281,33 +307,18 @@
   }
 
   // We'll implement taps using a separate click handler (more reliable across devices)
-  function onClick(e) {
-    // Convert click position to angle around center.
-    const x = e.clientX - state.cx;
-    const y = e.clientY - state.cy;
-    const ang = Math.atan2(y, x);
-
-    // amplitude based on distance from center: closer = smaller, mid = bigger, far = moderate
-    const d = Math.sqrt(x*x + y*y);
-    const dNorm = clamp01(d / (Math.min(window.innerWidth, window.innerHeight) * 0.55));
-    const amp = lerp(0.55, 1.25, dNorm); // subtle but visible
-    const sigma = lerp(0.22, 0.12, dNorm); // radians (~12° to 22°)
-
-    state.taps.push({ ang, amp, sigma, created: performance.now() });
-    // keep a bounded set so it stays subtle
-    if (state.taps.length > 18) state.taps.shift();
-  }
 
   canvas.addEventListener('pointerdown', onPointerDown, { passive: true });
   canvas.addEventListener('pointermove', onPointerMove, { passive: true });
-  canvas.addEventListener('pointerup', (e) => { state.dragging = false; }, { passive: true });
-  canvas.addEventListener('pointercancel', (e) => { state.dragging = false; }, { passive: true });
-
-  // Click handles both mouse and tap on many browsers; touch-action:none prevents scrolling.
-  canvas.addEventListener('click', onClick, { passive: true });
-
-  // prevent iOS scroll/zoom on canvas
-  canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 1) e.preventDefault(); }, { passive: false });
+  canvas.addEventListener('pointerup', (e) => {
+    state.dragging = false;
+    const dt = performance.now() - (state._downAt || performance.now());
+    const wasTap = (dt < 450) && !state._moved;
+    // If the user didn't drag (or only tiny movement), treat as tap distortion.
+    if (wasTap) addTapAt(e.clientX, e.clientY);
+    state._downAt = 0;
+  }, { passive: true });
+  canvas.addEventListener('pointercancel', (e) => { state.dragging = false; state._downAt = 0; }, { passive: true });
 
   // --- Start -----------------------------------------------------------------
   // Start with 1 ring (visibleTarget=0). Show the initial hint.
