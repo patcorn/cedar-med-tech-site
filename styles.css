@@ -65,7 +65,7 @@ html, body {
   left: 50%;
   bottom: 16px;
   transform: translateX(-50%);
-  font-size: 12px;
+  font-size: 16px;
   color: rgba(34,33,32,0.44);
   letter-spacing: 0.02em;
   z-index: 30;
