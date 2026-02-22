@@ -45,7 +45,7 @@
   const state = {
     cx: 0, cy: 0, maxVisibleRadius: 0,
     baseRadius: 56,
-    ringGap: 40.6,
+    ringGap: 40.8,
 
     // We precompute a full set of ring radii, but only draw N of them.
     rings: [], // [{r,born}]
